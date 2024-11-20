@@ -2,7 +2,7 @@
 export default function Login() {
     return (
         <>
-            Hi
+            Hi Login
         </>
     )
 }
