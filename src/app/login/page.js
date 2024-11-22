@@ -52,7 +52,7 @@ export default function Login() {
       .catch((error) => {
         console.log(error)
         // Handle login error, e.g., show an error message
-        alert('Login failed. Please check your credentials and try again.')
+        alert('Login failed. Please check your credentials')
       })
   }
 
