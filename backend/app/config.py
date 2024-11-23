@@ -22,7 +22,7 @@ def parse_cors(v: Any) -> list[str] | str:
 
 class Settings(BaseSettings):
     DATABASE_URL: str
-    MONGO_INITDB_DATABASE: str
+    MONGO_DATABASE: str
 
     CLIENT_ORIGIN: str
 
@@ -59,12 +59,11 @@ class Settings(BaseSettings):
 
     EMAIL_RESET_TOKEN_EXPIRE_HOURS: int = 1
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def emails_enabled(self) -> bool:
         return bool(self.SMTP_HOST and self.EMAILS_FROM_EMAIL)
 
-    # Encryption Algorithm
     ALGORITHM: str = "HS256"
 
 
