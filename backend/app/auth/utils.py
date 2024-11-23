@@ -50,7 +50,7 @@ async def register_user(db, request_data: dict) -> dict:
     try:
         user_data = {
             "email": request_data["email"],
-            "hashed_password": get_password_hash(request_data["password"]),
+            "hashed_password": request_data["password"],
             "profile": {
                 "first_name": request_data["full_name"],
                 "last_name": request_data["last_name"]

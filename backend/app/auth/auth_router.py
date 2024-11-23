@@ -24,7 +24,7 @@ async def register(
 ) -> RegisterUserResponse:
     try:
 
-        await get_user_by_email(db, register["email"])
+        await get_user_by_email(db, register.email)
         user_data = await register_user(db, register.dict())
         otp = generate_otp(length=6)
         await save_otp(db, user_data["_id"], otp)
@@ -44,5 +44,5 @@ async def register(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Registration Failed"
+            detail=f"Registration Failed: {e}"
         )

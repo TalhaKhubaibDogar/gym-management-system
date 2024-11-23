@@ -26,11 +26,11 @@ app.add_middleware(
 
 
 app.include_router(auth_router.router, tags=[
-                   'Authentication'], prefix=f"api/v1/auth")
+                   'Authentication'], prefix=f"/api/v1/auth")
 
 
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy"}
+    return {"status": "I'm Enjoy Great Health WBU?"}
 

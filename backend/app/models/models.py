@@ -48,7 +48,7 @@ class RegisterUser(BaseModel):
             raise ValueError("first name cannot be empty or just whitespace")
         return v.strip()
     @field_validator('last_name')
-    def validate_full_name(cls, v):
+    def validate_last_name(cls, v):
         if not v.strip():
             raise ValueError("last name cannot be empty or just whitespace")
         return v.strip()
@@ -57,8 +57,14 @@ class RegisterUserResponse(BaseModel):
     message: str = "Registration sucess! Otp sent to email"
 
 class OTP(BaseModel):
-    user_id: ObjectId
+    user_id: PyObjectId
     otp: str
     created_at: datetime
     expires_at: datetime
     is_verified: bool = False
+
+class TokenPayload(BaseModel):
+    sub: str
+    exp: int
+    type: str
+    email: str

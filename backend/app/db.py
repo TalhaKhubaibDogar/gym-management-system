@@ -12,6 +12,7 @@ try:
     db = client[settings.MONGO_DATABASE]
     Users = db.users
     Tokens = db.tokens
+    Otps = db.otps
 
     # Creating indexes for more smooth retrival
     Users.create_index([("email", pymongo.ASCENDING)], unique=True)
@@ -22,6 +23,7 @@ try:
         ("token", pymongo.ASCENDING),
         ("token_type", pymongo.ASCENDING)
     ])
+    Otps.create_index([("otp", pymongo.ASCENDING)], unique=True)
 
 except pymongo.errors.ConfigurationError as config_error:
     print(f"MongoDB Configuration Error: {config_error}")
