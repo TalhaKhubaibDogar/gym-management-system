@@ -8,7 +8,8 @@ from app.auth.utils import (
     send_email,
     generate_otp,
     save_otp,
-    get_un_verfied_user_by_email
+    get_un_verfied_user_by_email,
+    generate_reset_password_email,
 )
 from app.dependencies import DatabaseDepends
 from app.models.models import (
@@ -113,11 +114,18 @@ async def password_reset_request(
     db: DatabaseDepends
 ) -> PasswordResetResponse:
     try:
-        user = await db.users.find_one({"email": request.email})
+        user =  await db.users.find_one({
+        "email": request.email
+        })
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="No user found with this email."
+            )
+        if not user["is_verified"]:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User is not verified."
             )
 
         otp = generate_otp(length=6)
@@ -140,7 +148,7 @@ async def password_reset_request(
             )
 
         if settings.emails_enabled:
-            email_content = generate_registration_email(
+            email_content = generate_reset_password_email(
                 email_to=request.email,
                 otp=otp
             )

@@ -109,6 +109,17 @@ def generate_registration_email(email_to: str, otp: str, first_name: str) -> Ema
     )
     return EmailData(html_content=html_content, subject=subject)
 
+def generate_reset_password_email(email_to: str, otp: str) -> EmailData:
+    subject = "HUFC - Password Reset"
+    html_content = render_email_template(
+        template_name="reset_password_otp.html",
+        context={
+            "email": email_to,
+            "otp": otp
+        },
+    )
+    return EmailData(html_content=html_content, subject=subject)
+
 def send_email(
     *,
     email_to: str,
