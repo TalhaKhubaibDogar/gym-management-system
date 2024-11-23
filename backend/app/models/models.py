@@ -59,6 +59,7 @@ class RegisterUserResponse(BaseModel):
 class OTP(BaseModel):
     user_id: PyObjectId
     otp: str
+    type: str
     created_at: datetime
     expires_at: datetime
     is_verified: bool = False
@@ -68,3 +69,17 @@ class TokenPayload(BaseModel):
     exp: int
     type: str
     email: str
+
+class VerifyOtpRequest(BaseModel):
+    email: str
+    otp: str
+
+class VerifyOtpResponse(BaseModel):
+    message: str
+    user_id: Optional[str] = None
+
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+class PasswordResetResponse(BaseModel):
+    message: str
