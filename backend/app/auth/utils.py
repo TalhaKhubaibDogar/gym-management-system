@@ -14,6 +14,7 @@ from app.utils import EmailData, render_email_template
 
 async def get_user_by_email(db, email: str) -> Optional[dict]:
     user =  await db.users.find_one({"email": email})
+    print("None",user)
     if user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -38,25 +39,26 @@ async def save_otp(db, user_id: ObjectId, otp: str, expiration_minutes: int = 10
     
     result = await db.otps.insert_one(otp_data.dict())
     if result.inserted_id:
-        otp_data.id = result.inserted_id
-        return otp_data
+        otp_data_dict = otp_data.dict()
+        otp_data_dict["_id"] = result.inserted_id
+        return otp_data_dict
     else:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error saving OTP"
         )
 
-async def register_user(db, request_data: dict) -> dict:
+async def register_user(db, user_payload: dict) -> dict:
     try:
         user_data = {
-            "email": request_data["email"],
-            "hashed_password": request_data["password"],
+            "email": user_payload["email"],
+            "hashed_password": get_password_hash(user_payload["password"]),  # Hash the password
             "profile": {
-                "first_name": request_data["full_name"],
-                "last_name": request_data["last_name"]
+                "first_name": user_payload["first_name"],  # Fix field names
+                "last_name": user_payload["last_name"]
             },
             "is_active": False,
-            "is_verfied": False,
+            "is_verified": False,
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow()
         }
@@ -66,20 +68,24 @@ async def register_user(db, request_data: dict) -> dict:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Error creating user account data"
             )
+        # Add the inserted ID to user_data and return it
+        user_data["_id"] = result.inserted_id
         return user_data
-    except Exception:
+    except Exception as e:
+        print("Error in register_user:", e)  # Log the error for debugging
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Error creating user account"
         )
 
 
-def generate_registration_email(email_to: str, otp: str) -> EmailData:
+def generate_registration_email(email_to: str, otp: str, first_name: str) -> EmailData:
     subject = "HUFC - Registration"
     html_content = render_email_template(
         template_name="signup_template.html",
         context={
             "email": email_to,
+            "first_name": first_name,
             "otp": otp
         },
     )

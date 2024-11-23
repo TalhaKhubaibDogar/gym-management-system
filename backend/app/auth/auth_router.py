@@ -23,7 +23,7 @@ async def register(
     db: DatabaseDepends
 ) -> RegisterUserResponse:
     try:
-
+        print("Register Payload:", register.dict())  # Debug payload
         await get_user_by_email(db, register.email)
         user_data = await register_user(db, register.dict())
         otp = generate_otp(length=6)
@@ -31,6 +31,7 @@ async def register(
         if settings.emails_enabled:
             email = generate_registration_email(
                 email_to=register.email,
+                first_name = register.first_name,
                 otp = otp
             )
 
