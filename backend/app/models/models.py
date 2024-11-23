@@ -27,7 +27,7 @@ class PyObjectId(ObjectId):
             raise ValueError("Invalid ObjectId")
         return ObjectId(value)
     
-class AccountSetupRequest(BaseModel):
+class RegisterUser(BaseModel):
     email: str
     first_name: str = Field(..., min_length=2, max_length=50)
     last_name: str = Field(..., min_length=2, max_length=50)
@@ -53,5 +53,12 @@ class AccountSetupRequest(BaseModel):
             raise ValueError("last name cannot be empty or just whitespace")
         return v.strip()
 
-class AccountSetupResponse(BaseModel):
+class RegisterUserResponse(BaseModel):
     message: str = "Registration sucess! Otp sent to email"
+
+class OTP(BaseModel):
+    user_id: ObjectId
+    otp: str
+    created_at: datetime
+    expires_at: datetime
+    is_verified: bool = False
