@@ -15,9 +15,12 @@ from app.models.models import (
     RegisterUser,
     RegisterUserResponse,
     VerifyOtpRequest,
-    VerifyOtpResponse
+    VerifyOtpResponse,
+    OTP,
+    PasswordResetRequest,
+    PasswordResetResponse,
 )
-from datetime import datetime
+from datetime import datetime, timedelta
 
 router = APIRouter()
 
