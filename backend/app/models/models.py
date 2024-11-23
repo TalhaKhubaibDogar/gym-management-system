@@ -83,3 +83,11 @@ class PasswordResetRequest(BaseModel):
 
 class PasswordResetResponse(BaseModel):
     message: str
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    otp: str
+    new_password: str
+
+class ResetPasswordResponse(BaseModel):
+    message: str

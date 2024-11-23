@@ -20,8 +20,11 @@ from app.models.models import (
     OTP,
     PasswordResetRequest,
     PasswordResetResponse,
+    ResetPasswordRequest,
+    ResetPasswordResponse
 )
 from datetime import datetime, timedelta
+from app.utils import get_password_hash
 
 router = APIRouter()
 
@@ -53,7 +56,7 @@ async def register(
         raise http_err
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Registration Failed: {str(e)}"
         )
 
@@ -103,7 +106,7 @@ async def verify_otp(
         raise http_err
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="Failed to verify OTP."
         )
 
@@ -119,12 +122,12 @@ async def password_reset_request(
         })
         if not user:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
+                status_code=status.HTTP_400_BAD_REQUEST,
                 detail="No user found with this email."
             )
         if not user["is_verified"]:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
+                status_code=status.HTTP_400_BAD_REQUEST,
                 detail="User is not verified."
             )
 
@@ -143,7 +146,7 @@ async def password_reset_request(
         result = await db.otps.insert_one(otp_data.dict(by_alias=True))
         if not result.inserted_id:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Error saving OTP."
             )
 
@@ -159,8 +162,78 @@ async def password_reset_request(
             )
 
         return PasswordResetResponse(message="Password reset OTP sent to your email.")
+    except HTTPException as http_err:
+        raise http_err
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to process password reset request: {e}"
+        )
+
+@router.post("/set-password", response_model=ResetPasswordResponse)
+async def reset_password(
+    reset_password_data: ResetPasswordRequest,
+    db: DatabaseDepends
+) -> ResetPasswordResponse:
+    try:
+        user =  await db.users.find_one({
+        "email": reset_password_data.email
+        })
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No user found with this email."
+            )
+        if not user["is_verified"]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User is not verified."
+            )
+        
+        otp_entry = await db.otps.find_one(
+            {"user_id": str(user["_id"]), "otp": reset_password_data.otp, "type": "ForgetPassword"},
+            sort=[("created_at", -1)]
+        )
+
+        if not otp_entry:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid OTP."
+            )
+
+        if otp_entry["is_verified"]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="OTP has already been verified."
+            )
+
+        if otp_entry["expires_at"] < datetime.utcnow():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="OTP has expired."
+            )
+
+        await db.otps.update_one(
+            {"_id": otp_entry["_id"]},
+            {"$set": {"is_verified": True}}
+        )
+
+        hashed_password = get_password_hash(reset_password_data.new_password)
+        await db.users.update_one(
+            {"_id": user["_id"]},
+            {"$set": {"hashed_password": hashed_password}}
+        )
+
+        await db.otps.delete_one({"_id": otp_entry["_id"]})
+
+        return ResetPasswordResponse(
+            message="Password successfully reset."
+        )
+    
+    except HTTPException as http_err:
+        raise http_err
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to process password reset request: {e}"
+            detail="Failed to reset password."
         )
