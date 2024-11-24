@@ -79,6 +79,8 @@ async def register_user(db, user_payload: dict) -> dict:
             },
             "is_active": False,
             "is_verified": False,
+            "is_superuser": False,
+            "is_new": True,
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow()
         }

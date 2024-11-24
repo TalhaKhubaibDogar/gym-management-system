@@ -21,10 +21,16 @@ from app.models.models import (
     PasswordResetRequest,
     PasswordResetResponse,
     ResetPasswordRequest,
-    ResetPasswordResponse
+    ResetPasswordResponse,
+    LoginRequest,
+    LoginResponse,
 )
 from datetime import datetime, timedelta
-from app.utils import get_password_hash
+from app.utils import (
+    get_password_hash,
+    create_token,
+    verify_password,
+)
 
 router = APIRouter()
 
@@ -236,4 +242,91 @@ async def reset_password(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to reset password."
+        )
+
+
+@router.post("/login", response_model=LoginResponse)
+async def login(
+    login_data: LoginRequest,
+    db: DatabaseDepends
+) -> LoginResponse:
+    try:
+        # Fetch the user by email
+        user = await db.users.find_one({"email": login_data.email})
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid credentials"
+            )
+
+        # Verify the password
+        if not verify_password(login_data.password, user["hashed_password"]):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid credentials"
+            )
+
+        # Generate token expiration times
+        access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        refresh_token_expires = timedelta(days=settings.REFRESH_TOKEN_EXPIRE_MINUTES)
+
+        # Create access and refresh tokens
+        access_token = create_token(
+            subject=str(user["_id"]),
+            expires_delta=access_token_expires,
+            token_type="access_token",
+            email=user["email"]
+        )
+        refresh_token = create_token(
+            subject=str(user["_id"]),
+            expires_delta=refresh_token_expires,
+            token_type="refresh_token",
+            email=user["email"]
+        )
+
+        # Save refresh token in the database
+        await db.tokens.insert_one({
+            "user_id": user["_id"],
+            "token": refresh_token,
+            "token_type": "refresh_token",
+            "expires": datetime.utcnow() + refresh_token_expires,
+            "created_at": datetime.utcnow(),
+            "is_blacklisted": False
+        })
+
+        # Save access token in the database
+        await db.tokens.insert_one({
+            "user_id": user["_id"],
+            "token": access_token,
+            "token_type": "access_token",
+            "expires": datetime.utcnow() + access_token_expires,
+            "created_at": datetime.utcnow(),
+            "is_blacklisted": False
+        })
+
+        # Update `is_new` to False if it's the first login
+        if user.get("is_new", True):
+            await db.users.update_one(
+                {"_id": user["_id"]},
+                {"$set": {"is_new": False}}
+            )
+
+        # Return the tokens and user details
+        return LoginResponse(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            is_superuser=user.get("is_superuser", False),
+            is_new=False,  # Set to False explicitly
+            first_name=user.get("firstname", ""),
+            last_name=user.get("lastname", "")
+        )
+
+    except HTTPException as e:
+        raise e
+
+    except Exception as e:
+        # Handle unexpected errors
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred during login {str(e)}"
         )
