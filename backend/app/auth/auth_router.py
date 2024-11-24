@@ -10,8 +10,9 @@ from app.auth.utils import (
     save_otp,
     get_un_verfied_user_by_email,
     generate_reset_password_email,
+    get_user_from_token
 )
-from app.dependencies import DatabaseDepends
+from app.dependencies import DatabaseDepends, TokenDepends, reusable_oauth2
 from app.models.models import (
     RegisterUser,
     RegisterUserResponse,
@@ -24,6 +25,8 @@ from app.models.models import (
     ResetPasswordResponse,
     LoginRequest,
     LoginResponse,
+    SetProfile,
+    SetProfileResponse
 )
 from datetime import datetime, timedelta
 from app.utils import (
@@ -31,6 +34,7 @@ from app.utils import (
     create_token,
     verify_password,
 )
+from bson import ObjectId
 
 router = APIRouter()
 
@@ -303,10 +307,10 @@ async def login(
         return LoginResponse(
             access_token=access_token,
             refresh_token=refresh_token,
-            is_superuser=user.get("is_superuser", False),
-            is_new=False,  # Set to False explicitly
-            first_name=user.get("firstname", ""),
-            last_name=user.get("lastname", "")
+            is_superuser=user.get("is_superuser", None),
+            is_new=user.get("is_new", None),
+            first_name=user.get("profile", {}).get("first_name", ""),
+            last_name=user.get("profile", {}).get("last_name", "")
         )
 
     except HTTPException as e:
@@ -314,6 +318,54 @@ async def login(
 
     except Exception as e:
         raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="An error occurred during login"
+        )
+
+
+@router.put("/profile", response_model=SetProfileResponse)
+async def set_profile(
+    profile_data: SetProfile,
+    db: DatabaseDepends,
+    token: str = TokenDepends(reusable_oauth2)
+) -> SetProfileResponse:
+    try:
+        # Decode token to get user ID
+        user_id = get_user_from_token(token)
+
+
+        # Check if user exists
+        user = await db.users.find_one({"_id": ObjectId(user_id)})
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+
+        # Update the profile object
+        profile_update = {
+            "first_name": profile_data.first_name,
+            "last_name": profile_data.last_name,
+            "age": profile_data.age,
+            "height": profile_data.height,
+            "weight": profile_data.weight,
+            "gym_experience_level": profile_data.gym_experience_level,
+            "goals": profile_data.goals
+        }
+
+        await db.users.update_one(
+            {"_id": ObjectId(user_id)},
+            {"$set": {"profile": profile_update}}
+        )
+
+        return SetProfileResponse(
+            message="Profile updated successfully"
+        )
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An error occurred during login {str(e)}"
+            detail=f"An error occurred while updating the profile {str(e)}"
         )

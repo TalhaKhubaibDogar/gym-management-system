@@ -11,6 +11,8 @@ from app.config import settings
 from app.models.models import PyObjectId, OTP
 from app.utils import create_token, get_password_hash, verify_password
 from app.utils import EmailData, render_email_template
+from app.utils import decode_token
+
 
 async def get_user_by_email(db, email: str) -> Optional[dict]:
     user =  await db.users.find_one({
@@ -136,3 +138,13 @@ def send_email(
     with smtplib.SMTP_SSL(settings.SMTP_HOST, 465) as server:
         server.login(settings.EMAILS_FROM_EMAIL, settings.SMTP_PASSWORD)
         server.sendmail(settings.EMAILS_FROM_EMAIL, email_to, html_message.as_string())
+
+def get_user_from_token(token: str, token_type: str = "access_token") -> str:
+    decoded_token = decode_token(token, token_type=token_type)
+    user_id = decoded_token.get("sub")
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token"
+        )
+    return user_id

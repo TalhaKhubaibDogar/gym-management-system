@@ -11,7 +11,6 @@ app = FastAPI(
     version="3.0.0",
 )
 
-
 origins = [
     origin.strip() for origin in settings.CLIENT_ORIGIN.split(",")
 ]

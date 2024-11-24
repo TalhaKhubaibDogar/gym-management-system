@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Any, List, Optional
 
 from bson import ObjectId
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, validator
 from pydantic_core import CoreSchema, core_schema
 
 class PyObjectId(ObjectId):
@@ -104,3 +104,18 @@ class LoginResponse(BaseModel):
     is_new: bool
     first_name: str
     last_name: str
+
+class SetProfile(BaseModel):
+    first_name: str = Field(..., max_length=50, pattern=r"^[A-Za-z\s]+$")
+    last_name: str = Field(..., max_length=50, pattern=r"^[A-Za-z\s]+$")
+    age: Optional[int] = Field(None, ge=0, le=120, description="Age must be between 0 and 120.")
+    height: Optional[float] = Field(None, ge=50.0, le=250.0, description="Height must be between 50 cm and 250 cm.")
+    weight: Optional[float] = Field(None, ge=20.0, le=200.0, description="Weight must be between 20 kg and 200 kg.")
+    gym_experience_level: Optional[str] = Field(
+        None,
+        description="Gym experience level must be one of: Beginner, Intermediate, Advanced."
+    )
+    goals: Optional[str] = Field(None, max_length=200, description="Goals must not exceed 200 characters.")
+
+class SetProfileResponse(BaseModel):
+    message: str
