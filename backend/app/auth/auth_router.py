@@ -307,8 +307,8 @@ async def login(
         return LoginResponse(
             access_token=access_token,
             refresh_token=refresh_token,
-            is_superuser=user.get("is_superuser", False),
-            is_new=False,  # Set to False explicitly
+            is_superuser=user.get("is_superuser", None),
+            is_new=user.get("is_new", None),
             first_name=user.get("firstname", ""),
             last_name=user.get("lastname", "")
         )
@@ -327,29 +327,22 @@ async def login(
 async def set_profile(
     profile_data: SetProfile,
     db: DatabaseDepends,
-    current_user: CurrentUser  # Replace token parameter with current_user
+    current_user: CurrentUser
 ) -> SetProfileResponse:
     try:
-        # No need to manually validate token since current_user dependency handles it
-        user_id = str(current_user["_id"])  # Use the current_user directly
+        user_id = str(current_user["_id"])
         
-        profile_update = {
-            "first_name": profile_data.first_name,
-            "last_name": profile_data.last_name,
-            "age": profile_data.age,
-            "height": profile_data.height,
-            "weight": profile_data.weight,
-            "gym_experience_level": profile_data.gym_experience_level,
-            "goals": profile_data.goals
-        }
-
+        # Store the full profile data in the database
+        profile_dict = profile_data.model_dump()
+        
         await db.users.update_one(
             {"_id": ObjectId(user_id)},
-            {"$set": {"profile": profile_update}}
+            {"$set": {"profile": profile_dict}}
         )
 
         return SetProfileResponse(
-            message="Profile updated successfully"
+            message="Profile updated successfully",
+            profile=profile_data
         )
 
     except HTTPException as e:
@@ -357,5 +350,29 @@ async def set_profile(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An error occurred while updating the profile {str(e)}"
+            detail=f"An error occurred while updating the profile: {str(e)}"
+        )
+
+@router.get("/profile", response_model=SetProfileResponse)
+async def set_profile(
+    profile_data: SetProfile,
+    db: DatabaseDepends,
+    current_user: CurrentUser
+) -> SetProfileResponse:
+    try:
+        user_id = str(current_user["_id"])
+        
+        user = await db.users.find_one({"_id": ObjectId(user_id)})
+        user_profile = user.get("profile", {})
+        return SetProfileResponse(
+            message="Profile Retrived",
+            profile=user_profile
+        )
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while retriving the profile: {str(e)}"
         )
