@@ -1,9 +1,9 @@
 import re
 from datetime import datetime
 from typing import Any, List, Optional
-
+from enum import Enum
 from bson import ObjectId
-from pydantic import BaseModel, EmailStr, Field, field_validator, validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, validator, conlist
 from pydantic_core import CoreSchema, core_schema
 
 class PyObjectId(ObjectId):
@@ -105,17 +105,112 @@ class LoginResponse(BaseModel):
     first_name: str
     last_name: str
 
+
+class WorkoutFrequencyEnum(str, Enum):
+    RARELY = "Rarely (1-2 times/week)"
+    MODERATE = "Moderate (3-4 times/week)"
+    FREQUENT = "Frequent (5-6 times/week)"
+    DAILY = "Daily (7 times/week)"
+
+    @classmethod
+    def _missing_(cls, value: str):
+        # Map simplified inputs to full values
+        mapping = {
+            "Rarely": cls.RARELY,
+            "Moderate": cls.MODERATE,
+            "Frequent": cls.FREQUENT,
+            "Daily": cls.DAILY
+        }
+        return mapping.get(value)
+
+class ExperienceLevelEnum(str, Enum):
+    BEGINNER = "Beginner (0-1 years of training)"
+    INTERMEDIATE = "Intermediate (1-3 years of training)"
+    ADVANCED = "Advanced (3+ years of training)"
+
+    @classmethod
+    def _missing_(cls, value: str):
+        mapping = {
+            "Beginner": cls.BEGINNER,
+            "Intermediate": cls.INTERMEDIATE,
+            "Advanced": cls.ADVANCED
+        }
+        return mapping.get(value)
+
+class WorkoutTypeEnum(str, Enum):
+    STRENGTH = "Strength Training (weights and resistance)"
+    HIIT = "HIIT (High Intensity Interval Training)"
+    CARDIO = "Cardio (endurance focused)"
+    CROSSFIT = "CrossFit (varied functional movements)"
+    YOGA = "Yoga (flexibility and mindfulness)"
+    CALISTHENICS = "Calisthenics (bodyweight exercises)"
+
+    @classmethod
+    def _missing_(cls, value: str):
+        mapping = {
+            "Strength Training": cls.STRENGTH,
+            "HIIT": cls.HIIT,
+            "Cardio": cls.CARDIO,
+            "CrossFit": cls.CROSSFIT,
+            "Yoga": cls.YOGA,
+            "Calisthenics": cls.CALISTHENICS
+        }
+        return mapping.get(value)
+
+class FitnessGoalsEnum(str, Enum):
+    WEIGHT_LOSS = "Weight Loss (fat reduction)"
+    MUSCLE_GAIN = "Muscle Gain (hypertrophy)"
+    STRENGTH = "Strength Training (power and force)"
+    ENDURANCE = "Endurance (stamina improvement)"
+    FLEXIBILITY = "Flexibility (mobility and range)"
+    GENERAL = "General Fitness (overall health)"
+
+    @classmethod
+    def _missing_(cls, value: str):
+        mapping = {
+            "Weight Loss": cls.WEIGHT_LOSS,
+            "Muscle Gain": cls.MUSCLE_GAIN,
+            "Strength Training": cls.STRENGTH,
+            "Endurance": cls.ENDURANCE,
+            "Flexibility": cls.FLEXIBILITY,
+            "General Fitness": cls.GENERAL
+        }
+        return mapping.get(value)
+
+class InjuryStatus(BaseModel):
+    has_injury: bool
+    injury_description: Optional[str] = None
+
+class WorkoutAvailability(BaseModel):
+    preferred_time: str
+    available_days: List[str]
+    session_duration: int = Field(..., ge=30, le=240)
+
 class SetProfile(BaseModel):
     first_name: str = Field(..., max_length=50, pattern=r"^[A-Za-z\s]+$")
     last_name: str = Field(..., max_length=50, pattern=r"^[A-Za-z\s]+$")
-    age: Optional[int] = Field(None, ge=0, le=120, description="Age must be between 0 and 120.")
-    height: Optional[float] = Field(None, ge=50.0, le=250.0, description="Height must be between 50 cm and 250 cm.")
-    weight: Optional[float] = Field(None, ge=20.0, le=200.0, description="Weight must be between 20 kg and 200 kg.")
-    gym_experience_level: Optional[str] = Field(
-        None,
-        description="Gym experience level must be one of: Beginner, Intermediate, Advanced."
-    )
-    goals: Optional[str] = Field(None, max_length=200, description="Goals must not exceed 200 characters.")
+    age: int = Field(..., ge=16, le=120)
+    gender: Optional[str] = Field(None, pattern=r"^(Male|Female|Other)$")
+    height: float = Field(..., ge=50.0, le=250.0)
+    weight: float = Field(..., ge=20.0, le=300.0)
+    target_weight: Optional[float] = Field(None, ge=20.0, le=300.0)
+    gym_experience_level: ExperienceLevelEnum
+    workout_frequency: WorkoutFrequencyEnum
+    fitness_goals: List[FitnessGoalsEnum] = Field(..., max_items=3)
+    preferred_workout_types: List[WorkoutTypeEnum] = Field(..., max_items=4)
+    medical_conditions: Optional[List[str]] = Field(default=["None"])
+    dietary_restrictions: Optional[List[str]] = Field(default=["None"])
+    injury_status: InjuryStatus
+    workout_availability: WorkoutAvailability
+    preferred_training_split: Optional[str] = Field(None, max_length=100)
+    bench_press_max: Optional[float] = Field(None, ge=0, le=500)
+    squat_max: Optional[float] = Field(None, ge=0, le=500)
+    deadlift_max: Optional[float] = Field(None, ge=0, le=500)
+
+    class Config:
+        use_enum_values = True
 
 class SetProfileResponse(BaseModel):
     message: str
+    profile: SetProfile
+
