@@ -251,26 +251,20 @@ async def login(
     db: DatabaseDepends
 ) -> LoginResponse:
     try:
-        # Fetch the user by email
         user = await db.users.find_one({"email": login_data.email})
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid credentials"
             )
-
-        # Verify the password
         if not verify_password(login_data.password, user["hashed_password"]):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid credentials"
             )
 
-        # Generate token expiration times
         access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         refresh_token_expires = timedelta(days=settings.REFRESH_TOKEN_EXPIRE_MINUTES)
-
-        # Create access and refresh tokens
         access_token = create_token(
             subject=str(user["_id"]),
             expires_delta=access_token_expires,
@@ -283,8 +277,6 @@ async def login(
             token_type="refresh_token",
             email=user["email"]
         )
-
-        # Save refresh token in the database
         await db.tokens.insert_one({
             "user_id": user["_id"],
             "token": refresh_token,
@@ -294,7 +286,6 @@ async def login(
             "is_blacklisted": False
         })
 
-        # Save access token in the database
         await db.tokens.insert_one({
             "user_id": user["_id"],
             "token": access_token,
@@ -303,15 +294,12 @@ async def login(
             "created_at": datetime.utcnow(),
             "is_blacklisted": False
         })
-
-        # Update `is_new` to False if it's the first login
         if user.get("is_new", True):
             await db.users.update_one(
                 {"_id": user["_id"]},
                 {"$set": {"is_new": False}}
             )
 
-        # Return the tokens and user details
         return LoginResponse(
             access_token=access_token,
             refresh_token=refresh_token,
@@ -325,7 +313,6 @@ async def login(
         raise e
 
     except Exception as e:
-        # Handle unexpected errors
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An error occurred during login {str(e)}"
