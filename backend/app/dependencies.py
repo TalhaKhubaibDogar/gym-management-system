@@ -11,7 +11,7 @@ from app.config import settings
 from app.models.models import TokenPayload
 from app.utils import decode_token
 
-reusable_oauth2 = OAuth2PasswordBearer(tokenUrl=f"/api/v1//auth/login")
+reusable_oauth2 = OAuth2PasswordBearer(tokenUrl="api/v1/auth/login")
 
 client = AsyncIOMotorClient(settings.DATABASE_URL)
 db = client[settings.MONGO_DATABASE]
