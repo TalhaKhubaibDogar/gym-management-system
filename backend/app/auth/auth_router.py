@@ -26,13 +26,17 @@ from app.models.models import (
     LoginRequest,
     LoginResponse,
     SetProfile,
-    SetProfileResponse
+    SetProfileResponse,
+    RefreshTokenRequest,
+    RefreshTokenResponse
 )
 from datetime import datetime, timedelta
 from app.utils import (
     get_password_hash,
     create_token,
     verify_password,
+    validate_refresh_token,
+    decode_token
 )
 from bson import ObjectId
 
@@ -309,8 +313,8 @@ async def login(
             refresh_token=refresh_token,
             is_superuser=user.get("is_superuser", None),
             is_new=user.get("is_new", None),
-            first_name=user.get("firstname", ""),
-            last_name=user.get("lastname", "")
+            first_name=user.get("first_name", None),
+            last_name=user.get("last_name", None)
         )
 
     except HTTPException as e:
@@ -332,7 +336,6 @@ async def set_profile(
     try:
         user_id = str(current_user["_id"])
         
-        # Store the full profile data in the database
         profile_dict = profile_data.model_dump()
         
         await db.users.update_one(
@@ -375,4 +378,65 @@ async def set_profile(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An error occurred while retriving the profile: {str(e)}"
+        )
+
+@router.post("/refresh-token", response_model=RefreshTokenResponse)
+async def refresh_token(
+    refresh_token_data: RefreshTokenRequest,
+    db: DatabaseDepends
+) -> RefreshTokenResponse:
+    try:
+        user = await validate_refresh_token(db, refresh_token_data.refresh_token)
+        
+        await db.tokens.update_one(
+            {"token": refresh_token_data.refresh_token},
+            {"$set": {"is_blacklisted": True}}
+        )
+        
+        access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        refresh_token_expires = timedelta(days=settings.REFRESH_TOKEN_EXPIRE_MINUTES)
+        
+        new_access_token = create_token(
+            subject=str(user["_id"]),
+            expires_delta=access_token_expires,
+            token_type="access_token",
+            email=user["email"]
+        )
+        
+        new_refresh_token = create_token(
+            subject=str(user["_id"]),
+            expires_delta=refresh_token_expires,
+            token_type="refresh_token",
+            email=user["email"]
+        )
+        
+        await db.tokens.insert_one({
+            "user_id": user["_id"],
+            "token": new_refresh_token,
+            "token_type": "refresh_token",
+            "expires": datetime.utcnow() + refresh_token_expires,
+            "created_at": datetime.utcnow(),
+            "is_blacklisted": False
+        })
+        
+        await db.tokens.insert_one({
+            "user_id": user["_id"],
+            "token": new_access_token,
+            "token_type": "access_token",
+            "expires": datetime.utcnow() + access_token_expires,
+            "created_at": datetime.utcnow(),
+            "is_blacklisted": False
+        })
+        
+        return RefreshTokenResponse(
+            access_token=new_access_token,
+            refresh_token=new_refresh_token,
+        )
+    
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred during token refresh: {str(e)}"
         )
