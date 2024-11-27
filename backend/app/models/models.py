@@ -214,3 +214,11 @@ class SetProfileResponse(BaseModel):
     message: str
     profile: SetProfile
 
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str = Field(..., description="Refresh token to obtain new access token")
+
+class RefreshTokenResponse(BaseModel):
+    access_token: str
+    refresh_token: str = None
+

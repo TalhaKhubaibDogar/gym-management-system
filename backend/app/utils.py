@@ -10,6 +10,9 @@ from pathlib import Path
 from typing import Any, List, Optional
 from jinja2 import Template
 from app.config import settings
+from fastapi import HTTPException, status
+from jose import jwt, JWTError
+from bson import ObjectId
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -85,3 +88,37 @@ def render_email_template(*, template_name: str, context: dict[str, Any]) -> str
     ).read_text()
     html_content = Template(template_str).render(context)
     return html_content
+
+
+async def validate_refresh_token(db, refresh_token: str):
+    try:
+        token_record = await db.tokens.find_one({
+            "token": refresh_token,
+            "token_type": "refresh_token",
+            "is_blacklisted": False,
+            "expires": {"$gt": datetime.utcnow()}
+        })
+        
+        if not token_record:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired refresh token"
+            )
+
+        payload = decode_token(refresh_token)
+        user_id = payload.get('sub')
+        
+        user = await db.users.find_one({"_id": ObjectId(user_id)})
+        
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found"
+            )
+        
+        return user
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials"
+        )
