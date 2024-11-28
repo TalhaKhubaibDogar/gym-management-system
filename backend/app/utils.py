@@ -51,13 +51,34 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 def decode_token(token: str, token_type: str = "access_token") -> dict:
-    if token_type == "access_token":
-        secret_key = settings.ACCESS_TOKEN_KEY
-    else:
-        secret_key = settings.REFRESH_TOKEN_KEY
-
-    decoded_token = jwt.decode(token, secret_key, algorithms=[settings.ALGORITHM])
-    return decoded_token
+    try:
+        if token_type == "access_token":
+            secret_key = settings.ACCESS_TOKEN_KEY
+        else:
+            secret_key = settings.REFRESH_TOKEN_KEY
+        
+        # Add debug print statements
+        print(f"Token Type: {token_type}")
+        print(f"Secret Key Used: {secret_key}")
+        print(f"Token: {token}")
+        
+        decoded_token = jwt.decode(
+            token, 
+            secret_key, 
+            algorithms=[settings.ALGORITHM]
+        )
+        return decoded_token
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has expired"
+        )
+    except jwt.JWTError as e:
+        # More detailed error handling
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Token validation error: {str(e)}"
+        )
 
 
 def create_regex_in_condition(field: str, values: List[str]) -> dict:
@@ -92,24 +113,32 @@ def render_email_template(*, template_name: str, context: dict[str, Any]) -> str
 
 async def validate_refresh_token(db, refresh_token: str):
     try:
+        # First, check token in database
         token_record = await db.tokens.find_one({
             "token": refresh_token,
             "token_type": "refresh_token",
             "is_blacklisted": False,
             "expires": {"$gt": datetime.utcnow()}
         })
-        print("token", token_record)
+        
+        print("Token Record:", token_record)
         
         if not token_record:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid or expired refresh token"
             )
-
-        payload = decode_token(refresh_token)
-        print("payload", payload)
-        user_id = payload.get('sub')
         
+        # Try to decode the token
+        try:
+            payload = decode_token(refresh_token, token_type="refresh_token")
+            print("Decoded Payload:", payload)
+        except HTTPException as decode_error:
+            print(f"Token Decode Error: {decode_error.detail}")
+            raise
+        
+        # Extract user ID and find user
+        user_id = payload.get('sub')
         user = await db.users.find_one({"_id": ObjectId(user_id)})
         
         if not user:
@@ -119,8 +148,10 @@ async def validate_refresh_token(db, refresh_token: str):
             )
         
         return user
-    except JWTError as e:
+    
+    except Exception as e:
+        print(f"Validation Error: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Could not validate credentials {str(e)}"
+            detail=f"Could not validate credentials: {str(e)}"
         )

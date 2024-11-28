@@ -37,8 +37,8 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_KEY: str = secrets.token_urlsafe(32)
     REFRESH_TOKEN_KEY: str = secrets.token_urlsafe(32)
 
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 60
-    REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 2400
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24
+    REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 60
 
     HOST: str = os.getenv("DOMAIN")
     ENVIRONMENT: str = os.getenv("ENVIRONMENT")
@@ -64,7 +64,7 @@ class Settings(BaseSettings):
     def emails_enabled(self) -> bool:
         return bool(self.SMTP_HOST and self.EMAILS_FROM_EMAIL)
 
-    ALGORITHM: str = "HS256"
+    ALGORITHM: str = "HS384"
 
 
 settings = Settings()
