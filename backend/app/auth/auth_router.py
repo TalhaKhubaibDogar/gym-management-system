@@ -307,14 +307,14 @@ async def login(
                 {"_id": user["_id"]},
                 {"$set": {"is_new": False}}
             )
-
+        profile = user.get("profile",{})
         return LoginResponse(
             access_token=access_token,
             refresh_token=refresh_token,
             is_superuser=user.get("is_superuser", None),
             is_new=user.get("is_new", None),
-            first_name=user.get("first_name", None),
-            last_name=user.get("last_name", None)
+            first_name=profile.get("first_name", ""),
+            last_name=profile.get("last_name", "")
         )
 
     except HTTPException as e:

@@ -98,6 +98,7 @@ async def validate_refresh_token(db, refresh_token: str):
             "is_blacklisted": False,
             "expires": {"$gt": datetime.utcnow()}
         })
+        print("token", token_record)
         
         if not token_record:
             raise HTTPException(
@@ -106,6 +107,7 @@ async def validate_refresh_token(db, refresh_token: str):
             )
 
         payload = decode_token(refresh_token)
+        print("payload", payload)
         user_id = payload.get('sub')
         
         user = await db.users.find_one({"_id": ObjectId(user_id)})
@@ -117,8 +119,8 @@ async def validate_refresh_token(db, refresh_token: str):
             )
         
         return user
-    except JWTError:
+    except JWTError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials"
+            detail=f"Could not validate credentials {str(e)}"
         )
