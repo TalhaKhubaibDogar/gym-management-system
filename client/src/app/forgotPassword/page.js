@@ -1,93 +1,60 @@
 'use client'
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Avatar from '@mui/material/Avatar'
-import Button from '@mui/material/Button'
-import CssBaseline from '@mui/material/CssBaseline'
-import TextField from '@mui/material/TextField'
-import Box from '@mui/material/Box'
-import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
-import Typography from '@mui/material/Typography'
-import Container from '@mui/material/Container'
-import { createTheme, ThemeProvider } from '@mui/material/styles'
+import { FaLock } from 'react-icons/fa' // React icon for lock
+import Link from 'next/link'
 import axios from 'axios'
 
-const theme = createTheme()
+// Import the SCSS file
+import styles from './ForgotPassword.module.scss'
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('')
   const router = useRouter()
 
-  // const handleLogin = (event) => {
-  //     event.preventDefault();
-  //     router.push('/dashboard');
-  // };
   const handleForgotPassword = (event) => {
     event.preventDefault()
     axios
-      .post('https://api.candypaint.us/api/v1/users/reset-password/', {
-        email: email,
-      })
+      .post('https://api.candypaint.us/api/v1/users/reset-password/', { email })
       .then((response) => {
-        // Handle successful OTP verification
         console.log(response.data)
         alert('Check your email to Reset Password')
         router.push('/login')
       })
       .catch((error) => {
-        console.error('OTP verification error:', error)
-        // Handle OTP verification error
+        console.error('Password reset error:', error)
         alert('Reset Password Failed. Please try again.')
       })
   }
 
   return (
-    <ThemeProvider theme={theme}>
-      <Container component='main' maxWidth='xs'>
-        <CssBaseline />
-        <Box
-          sx={{
-            marginTop: 8,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-          }}
-        >
-          <Avatar sx={{ m: 1, bgcolor: 'secondary.main' }}>
-            <LockOutlinedIcon />
-          </Avatar>
-          <Typography component='h1' variant='h5'>
-            Forgot Password
-          </Typography>
-          <Box
-            component='form'
-            onSubmit={handleForgotPassword}
-            noValidate
-            sx={{ mt: 1 }}
-          >
-            <TextField
-              margin='normal'
-              required
-              fullWidth
-              id='email'
-              label='Your Email Address'
-              name='email'
-              autoComplete='email'
+    <div className={styles.container}>
+      <div className={styles.formContainer}>
+        <div className={styles.avatar}>
+          <FaLock size={50} color="#fff" />
+        </div>
+        <h1 className={styles.title}>Forgot Password</h1>
+        <form onSubmit={handleForgotPassword} className={styles.form}>
+          <div className={styles.formGroup}>
+            <label htmlFor="email">Your Email Address</label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              placeholder="Enter your email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              required
             />
-            <Button
-              type='submit'
-              fullWidth
-              variant='contained'
-              sx={{ mt: 3, mb: 2 }}
-              style={{ backgroundColor: '#272727', color: '#fff' }}
-            >
-              Send Email
-            </Button>
-          </Box>
-        </Box>
-      </Container>
-    </ThemeProvider>
+          </div>
+          <button type="submit" className={styles.submitBtn}>
+            Send Email
+          </button>
+        </form>
+        <div className={styles.linkContainer}>
+          <Link href="/login">Back to Login</Link>
+        </div>
+      </div>
+    </div>
   )
 }
