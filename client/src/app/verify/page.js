@@ -1,28 +1,18 @@
 'use client'
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import Avatar from '@mui/material/Avatar'
-import Button from '@mui/material/Button'
-import CssBaseline from '@mui/material/CssBaseline'
-import TextField from '@mui/material/TextField'
-import Box from '@mui/material/Box'
-import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
-import Typography from '@mui/material/Typography'
-import Container from '@mui/material/Container'
-import { createTheme, ThemeProvider } from '@mui/material/styles'
+import { FaLock } from 'react-icons/fa' // React Icon for lock
+import Link from 'next/link'
 import axios from 'axios'
 
-const theme = createTheme()
+// Import the SCSS file
+import styles from './Verify.module.scss'
 
 export default function Verify() {
-  const [otp, setOtop] = useState('')
+  const [otp, setOtp] = useState('')
   const [email, setEmail] = useState('')
   const router = useRouter()
 
-  // const handleLogin = (event) => {
-  //     event.preventDefault();
-  //     router.push('/dashboard');
-  // };
   useEffect(() => {
     // Assuming email is stored in localStorage after signup
     const storedEmail = localStorage.getItem('email')
@@ -37,69 +27,45 @@ export default function Verify() {
   const handleVerify = (event) => {
     event.preventDefault()
     axios
-      .post('https://api.candypaint.us/api/v1/users/verifyotp/', {
-        email: email,
-        otp: otp,
-      })
+      .post('https://api.candypaint.us/api/v1/users/verifyotp/', { email, otp })
       .then((response) => {
-        // Handle successful OTP verification
         console.log(response.data)
         router.push('/login')
       })
       .catch((error) => {
         console.error('OTP verification error:', error)
-        // Handle OTP verification error
         alert('OTP verification failed. Please try again.')
       })
   }
 
   return (
-    <ThemeProvider theme={theme}>
-      <Container component='main' maxWidth='xs'>
-        <CssBaseline />
-        <Box
-          sx={{
-            marginTop: 8,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-          }}
-        >
-          <Avatar sx={{ m: 1, bgcolor: 'secondary.main' }}>
-            <LockOutlinedIcon />
-          </Avatar>
-          <Typography component='h1' variant='h5'>
-            Verify OTP
-          </Typography>
-          <Box
-            component='form'
-            onSubmit={handleVerify}
-            noValidate
-            sx={{ mt: 1 }}
-          >
-            <TextField
-              margin='normal'
-              required
-              fullWidth
-              id='otp'
-              label='OTP'
-              name='otp'
-              autoComplete='otp'
+    <div className={styles.container}>
+      <div className={styles.formContainer}>
+        <div className={styles.avatar}>
+          <FaLock size={50} color="#fff" />
+        </div>
+        <h1 className={styles.title}>Verify OTP</h1>
+        <form onSubmit={handleVerify} className={styles.form}>
+          <div className={styles.formGroup}>
+            <label htmlFor="otp">OTP</label>
+            <input
+              type="text"
+              id="otp"
+              name="otp"
+              placeholder="Enter OTP"
               value={otp}
-              onChange={(e) => setOtop(e.target.value)}
+              onChange={(e) => setOtp(e.target.value)}
+              required
             />
-            <Button
-              type='submit'
-              fullWidth
-              variant='contained'
-              sx={{ mt: 3, mb: 2 }}
-              style={{ backgroundColor: '#272727', color: '#fff' }}
-            >
-              Verify OTP
-            </Button>
-          </Box>
-        </Box>
-      </Container>
-    </ThemeProvider>
+          </div>
+          <button type="submit" className={styles.submitBtn}>
+            Verify OTP
+          </button>
+        </form>
+        <div className={styles.linkContainer}>
+          <Link href="/login">Back to Login</Link>
+        </div>
+      </div>
+    </div>
   )
 }
