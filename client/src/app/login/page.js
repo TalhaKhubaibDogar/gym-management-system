@@ -1,22 +1,12 @@
 'use client'
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Avatar from '@mui/material/Avatar'
-import Button from '@mui/material/Button'
-import CssBaseline from '@mui/material/CssBaseline'
-import TextField from '@mui/material/TextField'
-import FormControlLabel from '@mui/material/FormControlLabel'
-import Checkbox from '@mui/material/Checkbox'
-import Grid from '@mui/material/Grid'
-import Box from '@mui/material/Box'
-import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
-import Typography from '@mui/material/Typography'
-import Container from '@mui/material/Container'
-import { createTheme, ThemeProvider } from '@mui/material/styles'
+import { FaLock } from "react-icons/fa";
+import { HiOutlineMail } from 'react-icons/hi'
+import { MdLockOutline } from 'react-icons/md'
 import Link from 'next/link'
 import axios from 'axios'
-
-const theme = createTheme()
+import styles from './Login.module.scss'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -31,7 +21,6 @@ export default function Login() {
         password: password,
       })
       .then((res) => {
-        // Handle successful login, e.g., save token and navigate to the account page
         const data = res.data.data
         localStorage.setItem('id', data.id)
         localStorage.setItem('first_name', data.first_name)
@@ -46,99 +35,55 @@ export default function Login() {
         localStorage.setItem('expire_on', data.expire_on)
         localStorage.setItem('isLoggedIn', true)
 
-        // Navigate to the account page
         router.push('/dashboard')
       })
       .catch((error) => {
         console.log(error)
-        // Handle login error, e.g., show an error message
         alert('Login failed. Please check your credentials')
       })
   }
 
   return (
-    <ThemeProvider theme={theme}>
-      <Container component='main' maxWidth='xs'>
-        <CssBaseline />
-        <Box
-          sx={{
-            marginTop: 8,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-          }}
-        >
-          <Avatar sx={{ m: 1, bgcolor: 'secondary.main' }}>
-            <LockOutlinedIcon />
-          </Avatar>
-          <Typography component='h1' variant='h5'>
-            Sign in
-          </Typography>
-          <Box
-            component='form'
-            onSubmit={handleLogin}
-            noValidate
-            sx={{ mt: 1 }}
-          >
-            <TextField
-              margin='normal'
-              required
-              fullWidth
-              id='email'
-              label='Email Address'
-              name='email'
-              autoComplete='email'
+    <div className={styles['login-container']}>
+      <div className={styles['login-form']}>
+        <div className={styles.avatar}>
+          <FaLock />
+        </div>
+        <h1>Sign in</h1>
+        <form onSubmit={handleLogin}>
+          <div className={styles['input-group']}>
+            <HiOutlineMail />
+            <input
+              type="email"
+              id="email"
+              placeholder="Email Address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-            />
-            <TextField
-              margin='normal'
               required
-              fullWidth
-              name='password'
-              label='Password'
-              type='password'
-              id='password'
-              autoComplete='current-password'
+            />
+          </div>
+          <div className={styles['input-group']}>
+            <MdLockOutline />
+            <input
+              type="password"
+              id="password"
+              placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              required
             />
-            <FormControlLabel
-              control={<Checkbox value='remember' color='primary' />}
-              label='Remember me'
-            />
-            <Button
-              type='submit'
-              fullWidth
-              variant='contained'
-              sx={{ mt: 3, mb: 2 }}
-              style={{ backgroundColor: '#272727', color: '#fff' }}
-            >
-              Sign In
-            </Button>
-            <Grid
-              container
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '1rem',
-              }}
-            >
-              <Grid item>
-                <Link href='/signup' legacyBehavior>
-                  <a>{"Don't have an account? Sign Up"}</a>
-                </Link>
-              </Grid>
-              <Grid item xs>
-                <Link href='/forgotPassword' legacyBehavior>
-                  <a>Forgot password?</a>
-                </Link>
-              </Grid>
-            </Grid>
-          </Box>
-        </Box>
-      </Container>
-    </ThemeProvider>
+          </div>
+          <div className={styles['remember-me']}>
+            <input type="checkbox" id="remember" />
+            <label htmlFor="remember">Remember me</label>
+          </div>
+          <button type="submit">Sign In</button>
+        </form>
+        <div className={styles.links}>
+          <Link href="/signup">Don't have an account? Sign Up</Link>
+          <Link href="/forgotPassword">Forgot password?</Link>
+        </div>
+      </div>
+    </div>
   )
 }
