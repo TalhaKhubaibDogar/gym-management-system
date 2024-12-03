@@ -1,0 +1,104 @@
+/* SignUp.module.scss */
+
+/* Container styles */
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.formContainer {
+    background-color: #fff;
+    padding: 40px 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+    overflow: hidden;
+
+    h1 {
+        font-size: 24px;
+        color: #333;
+        font-weight: bold;
+        margin-bottom: 20px;
+    }
+}
+
+.avatar {
+    background-color: #2575fc;
+    border-radius: 50%;
+    padding: 10px;
+    margin-bottom: 20px;
+    display: inline-block;
+}
+
+
+.formGroup {
+    margin-bottom: 20px;
+    text-align: left;
+
+    label {
+        display: block;
+        font-size: 14px;
+        color: #555;
+        margin-bottom: 5px;
+    }
+
+    input,
+    select {
+        width: 100%;
+        padding: 12px;
+        margin-top: 8px;
+        font-size: 16px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        outline: none;
+        transition: all 0.3s ease;
+    }
+
+    input:focus,
+    select:focus {
+        border-color: #2575fc;
+    }
+
+    .error {
+        color: #ff4d4d;
+        font-size: 12px;
+        margin-top: 5px;
+    }
+
+}
+
+.button1 {
+    width: 100%;
+    padding: 12px;
+    background-color: #2575fc;
+    color: white;
+    font-size: 16px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    font-weight: bold;
+    margin-top: 20px;
+}
+
+.button1:hover {
+    background-color: #6a11cb;
+}
+
+.linkContainer {
+    margin-top: 20px;
+}
+
+.linkContainer a {
+    color: #2575fc;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.linkContainer a:hover {
+    text-decoration: underline;
+}
