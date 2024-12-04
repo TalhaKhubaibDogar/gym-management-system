@@ -7,6 +7,7 @@ import { MdLockOutline } from 'react-icons/md'
 import Link from 'next/link'
 import axios from 'axios'
 import styles from './Login.module.scss'
+import { BASE_URL } from '@/helper/CONST';
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -16,24 +17,15 @@ export default function Login() {
   const handleLogin = (event) => {
     event.preventDefault()
     axios
-      .post('https://api.candypaint.us/api/v1/users/login/', {
+      .post(`${BASE_URL}/api/v1/auth/login`, {
         email: email,
         password: password,
       })
       .then((res) => {
-        const data = res.data.data
-        localStorage.setItem('id', data.id)
-        localStorage.setItem('first_name', data.first_name)
-        localStorage.setItem('last_name', data.last_name)
-        localStorage.setItem('email', data.email)
-        localStorage.setItem('full_name', data.full_name)
-        localStorage.setItem('role', data.role)
-        localStorage.setItem('referral_code', data.referral_code)
-        localStorage.setItem('is_new', data.is_new)
-        localStorage.setItem('access_token', data.access_token)
-        localStorage.setItem('refresh_token', data.refresh_token)
-        localStorage.setItem('expire_on', data.expire_on)
-        localStorage.setItem('isLoggedIn', true)
+        console.log(res)
+        const data = res.data
+        localStorage.setItem('user', JSON.stringify(data));
+        localStorage.setItem('isLoggedIn', true);
 
         router.push('/dashboard')
       })
