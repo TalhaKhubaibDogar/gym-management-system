@@ -15,11 +15,11 @@ export default function ForgotPassword() {
   const handleForgotPassword = (event) => {
     event.preventDefault()
     axios
-      .post('https://api.candypaint.us/api/v1/users/reset-password/', { email })
+      .post(`${BASE_URL}/api/v1/auth/request/password-reset`, { email })
       .then((response) => {
         console.log(response.data)
         alert('Check your email to Reset Password')
-        router.push('/login')
+        router.push('/set-password')
       })
       .catch((error) => {
         console.error('Password reset error:', error)
