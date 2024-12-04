@@ -7,6 +7,7 @@ import axios from 'axios'
 
 // Import the SCSS file
 import styles from './Verify.module.scss'
+import { BASE_URL } from '@/helper/CONST'
 
 export default function Verify() {
   const [otp, setOtp] = useState('')
@@ -27,7 +28,7 @@ export default function Verify() {
   const handleVerify = (event) => {
     event.preventDefault()
     axios
-      .post('https://api.candypaint.us/api/v1/users/verifyotp/', { email, otp })
+      .post(`${BASE_URL}/api/v1/auth/verify-otp`, { email, otp })
       .then((response) => {
         console.log(response.data)
         router.push('/login')
