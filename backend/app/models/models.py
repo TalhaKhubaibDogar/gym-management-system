@@ -222,3 +222,14 @@ class RefreshTokenResponse(BaseModel):
     access_token: str
     refresh_token: str = None
 
+
+class AdminUserList(BaseModel):
+    id: str = Field(..., alias="_id") 
+    first_name: str
+    last_name: str
+    email: str
+    is_active: bool
+    profile: Optional[dict] = None
+
+    class Config:
+        populate_by_name = True 

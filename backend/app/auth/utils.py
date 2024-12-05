@@ -148,3 +148,23 @@ def get_user_from_token(token: str, token_type: str = "access_token") -> str:
             detail="Invalid or expired token"
         )
     return user_id
+
+
+async def verify_superuser(db, current_user: dict):
+    """
+    Utility function to verify if the current user is a superuser.
+    """
+    user_id = current_user["_id"]
+    user = await db.users.find_one({"_id": ObjectId(user_id)})
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    if not user.get("is_superuser", False):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Insufficient permissions"
+        )

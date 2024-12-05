@@ -3,7 +3,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.auth import auth_router
+from app.auth import auth_router, admin_router
 
 app = FastAPI(
     title="UHFC Fitness",
@@ -26,7 +26,8 @@ app.add_middleware(
 
 app.include_router(auth_router.router, tags=[
                    'Authentication'], prefix=f"/api/v1/auth")
-
+app.include_router(admin_router.router, tags=[
+                   'Admin'], prefix=f"/api/v1/admin")
 
 
 @app.get("/health")
