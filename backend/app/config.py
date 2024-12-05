@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_KEY: str = secrets.token_urlsafe(32)
     REFRESH_TOKEN_KEY: str = secrets.token_urlsafe(32)
 
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 2400
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 60
     REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 60
 
     HOST: str = os.getenv("DOMAIN")

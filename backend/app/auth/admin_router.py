@@ -9,7 +9,8 @@ from app.dependencies import DatabaseDepends, CurrentUser
 from app.models.models import (
     AdminUserList,
     AdminUpdateUserStatus,
-    AdminUpdateUserResponse
+    AdminUpdateUserResponse,
+    SetProfile
 )
 from datetime import datetime, timedelta
 from app.utils import (
@@ -96,4 +97,36 @@ async def admin_update_user(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An unexpected error occurred: {str(e)}"
+        )
+    
+# API Endpoint
+@router.get("/users/{user_id}", response_model=SetProfile)
+async def get_user_details(
+    user_id: str,
+    db: DatabaseDepends,
+    current_user: CurrentUser
+) -> SetProfile:
+    """
+    Admin-only API to fetch details of a specific user.
+    """
+    try:
+        await verify_superuser(db, current_user)
+
+        user = await db.users.find_one({"_id": ObjectId(user_id)})
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        response = SetProfile(
+            profile=user.get("profile", {})
+        )
+        return response
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while fetching user details: {str(e)}"
         )

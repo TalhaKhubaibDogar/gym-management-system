@@ -78,10 +78,10 @@ async def get_current_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Invalid token format"
         )
-    except Exception:
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal server error"
+            detail=f"Internal server error str {(e)}"
         )
 
 CurrentUser = Annotated[dict, Depends(get_current_user)]
