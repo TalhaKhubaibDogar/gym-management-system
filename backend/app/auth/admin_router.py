@@ -8,6 +8,8 @@ from app.auth.utils import (
 from app.dependencies import DatabaseDepends, CurrentUser
 from app.models.models import (
     AdminUserList,
+    AdminUpdateUserStatus,
+    AdminUpdateUserResponse
 )
 from datetime import datetime, timedelta
 from app.utils import (
@@ -54,4 +56,44 @@ async def get_user_list(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Error"
+        )
+
+@router.put("/users/{user_id}", response_model=AdminUpdateUserResponse)
+async def admin_update_user(
+    db: DatabaseDepends,
+    current_user: CurrentUser,
+    user_id: str,
+    update_data: AdminUpdateUserStatus
+) -> AdminUpdateUserResponse:
+    """
+    Admin-only API to update a user's `is_active` status.
+    """
+    try:
+        print(f"Received user_id: {user_id}")
+        print(f"Update data: {update_data}")
+        await verify_superuser(db, current_user)
+        user_object_id = ObjectId(user_id)
+
+        user = await db.users.find_one({"_id": user_object_id})
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+
+        await db.users.update_one(
+            {"_id": ObjectId(user_id)},
+            {"$set": {"is_active": update_data.is_active}}
+        )
+
+        return AdminUpdateUserResponse(
+            user_id=user_id,
+            is_active=update_data.is_active
+        )
+    except HTTPException as http_error:
+        raise http_error
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An unexpected error occurred: {str(e)}"
         )

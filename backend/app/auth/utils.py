@@ -160,7 +160,7 @@ async def verify_superuser(db, current_user: dict):
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
+            detail="SuperUser not found"
         )
 
     if not user.get("is_superuser", False):
@@ -168,3 +168,4 @@ async def verify_superuser(db, current_user: dict):
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Insufficient permissions"
         )
+

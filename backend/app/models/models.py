@@ -234,10 +234,9 @@ class AdminUserList(BaseModel):
     class Config:
         populate_by_name = True 
 
-class AdminUpdateUserRequest(BaseModel):
+class AdminUpdateUserStatus(BaseModel):
     is_active: bool
 
 class AdminUpdateUserResponse(BaseModel):
-    message: str
     user_id: str
     is_active: bool
