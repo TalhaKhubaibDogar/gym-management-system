@@ -268,3 +268,12 @@ class MembershipResponse(BaseModel):
     price: float
     duration_months: int
     benefits: list[str]
+
+class UserSubscriptionRequest(BaseModel):
+    membership_id: str
+
+class UserSubscriptionResponse(BaseModel):
+    user_id: str
+    membership_id: str
+    start_date: datetime
+    end_date: datetime

@@ -14,7 +14,9 @@ from app.models.models import (
     SetProfile,
     MembershipCreateRequest,
     MembershipUpdateRequest,
-    MembershipResponse
+    MembershipResponse,
+    UserSubscriptionRequest,
+    UserSubscriptionResponse
 )
 from datetime import datetime, timedelta
 from app.utils import (
@@ -63,58 +65,20 @@ async def get_user_list(
             detail="Error"
         )
 
-@router.put("/users/{user_id}", response_model=AdminUpdateUserResponse)
-async def admin_update_user(
-    db: DatabaseDepends,
-    current_user: CurrentUser,
-    user_id: str,
-    update_data: AdminUpdateUserStatus
-) -> AdminUpdateUserResponse:
-    """
-    Admin-only API to update a user's `is_active` status.
-    """
-    try:
-        print(f"Received user_id: {user_id}")
-        print(f"Update data: {update_data}")
-        await verify_superuser(db, current_user)
-        user_object_id = ObjectId(user_id)
-
-        user = await db.users.find_one({"_id": user_object_id})
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found"
-            )
-
-        await db.users.update_one(
-            {"_id": ObjectId(user_id)},
-            {"$set": {"is_active": update_data.is_active}}
-        )
-
-        return AdminUpdateUserResponse(
-            user_id=user_id,
-            is_active=update_data.is_active
-        )
-    except HTTPException as http_error:
-        raise http_error
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An unexpected error occurred: {str(e)}"
-        )
-    
-@router.get("/users/{user_id}", response_model=SetProfile)
+@router.get("/users/{user_id}", response_model=dict)
 async def get_user_details(
     user_id: str,
     db: DatabaseDepends,
     current_user: CurrentUser
-) -> SetProfile:
+) -> dict:
     """
-    Admin-only API to fetch details of a specific user.
+    Admin-only API to fetch details of a specific user, including their profile and any active subscription.
     """
     try:
+        # Verify if the current user has superuser privileges
         await verify_superuser(db, current_user)
 
+        # Fetch the user's details from the database
         user = await db.users.find_one({"_id": ObjectId(user_id)})
         if not user:
             raise HTTPException(
@@ -122,16 +86,28 @@ async def get_user_details(
                 detail="User not found"
             )
 
-        profile_data = user.get("profile")
-        if not profile_data:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="User profile is missing or invalid"
-            )
+        # Fetch the subscription details if available
+        subscription = await db.subscriptions.find_one({"user_id": ObjectId(user_id)})
+        subscription_details = None
+        if subscription:
+            membership = await db.memberships.find_one({"_id": subscription["membership_id"]})
+            if membership:
+                subscription_details = {
+                    "membership_name": membership["name"],
+                    "membership_description": membership["description"],
+                    "price": membership["price"],
+                    "start_date": subscription["start_date"],
+                    "end_date": subscription["end_date"]
+                }
 
-        profile = SetProfile(**profile_data)
+        # Build the response
+        response = {
+            "profile": user.get("profile", {}),
+            "is_active": user.get("is_active", False),
+            "subscription": subscription_details
+        }
 
-        return profile
+        return response
 
     except HTTPException as e:
         raise e
@@ -141,7 +117,7 @@ async def get_user_details(
             detail=f"An error occurred while fetching user details: {str(e)}"
         )
 
-@router.post("/admin/memberships", response_model=MembershipResponse)
+@router.post("/memberships", response_model=MembershipResponse)
 async def create_membership(
     membership_data: MembershipCreateRequest,
     db: DatabaseDepends,
@@ -169,7 +145,7 @@ async def create_membership(
             detail=f"An error occurred while creating the membership: {str(e)}"
         )
 
-@router.put("/admin/memberships/{membership_id}", response_model=MembershipResponse)
+@router.put("/memberships/{membership_id}", response_model=MembershipResponse)
 async def update_membership(
     membership_id: str,
     update_data: MembershipUpdateRequest,
@@ -204,7 +180,7 @@ async def update_membership(
             detail=f"An error occurred while updating the membership: {str(e)}"
         )
 
-@router.delete("/admin/memberships/{membership_id}")
+@router.delete("/memberships/{membership_id}")
 async def delete_membership(
     membership_id: str,
     db: DatabaseDepends,
@@ -229,7 +205,7 @@ async def delete_membership(
             detail=f"An error occurred while deleting the membership: {str(e)}"
         )
 
-@router.delete("/admin/memberships/{membership_id}")
+@router.delete("/memberships/{membership_id}")
 async def delete_membership(
     membership_id: str,
     db: DatabaseDepends,
@@ -255,7 +231,7 @@ async def delete_membership(
         )
 
 
-@router.get("/admin/memberships", response_model=list[MembershipResponse])
+@router.get("/memberships", response_model=list[MembershipResponse])
 async def list_memberships(
     db: DatabaseDepends,
     current_user: CurrentUser
@@ -280,4 +256,57 @@ async def list_memberships(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An error occurred while listing memberships: {str(e)}"
+        )
+
+
+
+@router.post("/users/{user_id}/subscribe", response_model=UserSubscriptionResponse)
+async def subscribe_user_to_membership(
+    user_id: str,
+    subscription_data: UserSubscriptionRequest,
+    db: DatabaseDepends,
+    current_user: CurrentUser
+):
+    """
+    Admin-only API to subscribe a user to a membership plan.
+    """
+    try:
+        await verify_superuser(db, current_user)
+
+        user = await db.users.find_one({"_id": ObjectId(user_id)})
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+
+        membership = await verify_membership_exists(db, subscription_data.membership_id)
+
+        start_date = datetime.utcnow()
+        end_date = start_date + timedelta(days=membership["duration_months"] * 30)
+
+        await db.users.update_one(
+            {"_id": ObjectId(user_id)},
+            {"$set": {
+                "membership": {
+                    "membership_id": subscription_data.membership_id,
+                    "start_date": start_date,
+                    "end_date": end_date,
+                }
+            }}
+        )
+
+        return UserSubscriptionResponse(
+            user_id=user_id,
+            membership_id=subscription_data.membership_id,
+            start_date=start_date,
+            end_date=end_date
+        )
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while subscribing user: {str(e)}"
         )
