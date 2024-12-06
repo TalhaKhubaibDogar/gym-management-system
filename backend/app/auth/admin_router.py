@@ -3,14 +3,18 @@ from fastapi import APIRouter, HTTPException, status
 from app.config import settings
 from typing import List
 from app.auth.utils import (
-    verify_superuser
+    verify_superuser,
+    verify_membership_exists
 )
 from app.dependencies import DatabaseDepends, CurrentUser
 from app.models.models import (
     AdminUserList,
     AdminUpdateUserStatus,
     AdminUpdateUserResponse,
-    SetProfile
+    SetProfile,
+    MembershipCreateRequest,
+    MembershipUpdateRequest,
+    MembershipResponse
 )
 from datetime import datetime, timedelta
 from app.utils import (
@@ -135,4 +139,145 @@ async def get_user_details(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An error occurred while fetching user details: {str(e)}"
+        )
+
+@router.post("/admin/memberships", response_model=MembershipResponse)
+async def create_membership(
+    membership_data: MembershipCreateRequest,
+    db: DatabaseDepends,
+    current_user: CurrentUser
+):
+    """
+    Admin-only API to create a new membership plan.
+    """
+    try:
+        await verify_superuser(db, current_user)
+
+        membership_dict = membership_data.dict()
+        result = await db.memberships.insert_one(membership_dict)
+
+        return MembershipResponse(
+            id=str(result.inserted_id),
+            **membership_dict
+        )
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while creating the membership: {str(e)}"
+        )
+
+@router.put("/admin/memberships/{membership_id}", response_model=MembershipResponse)
+async def update_membership(
+    membership_id: str,
+    update_data: MembershipUpdateRequest,
+    db: DatabaseDepends,
+    current_user: CurrentUser
+):
+    """
+    Admin-only API to update an existing membership plan.
+    """
+    try:
+        await verify_superuser(db, current_user)
+
+        existing_membership = await verify_membership_exists(db, membership_id)
+
+        updated_data = {k: v for k, v in update_data.dict().items() if v is not None}
+        await db.memberships.update_one(
+            {"_id": ObjectId(membership_id)},
+            {"$set": updated_data}
+        )
+
+        updated_membership = {**existing_membership, **updated_data}
+        return MembershipResponse(
+            id=str(membership_id),
+            **updated_membership
+        )
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while updating the membership: {str(e)}"
+        )
+
+@router.delete("/admin/memberships/{membership_id}")
+async def delete_membership(
+    membership_id: str,
+    db: DatabaseDepends,
+    current_user: CurrentUser
+):
+    """
+    Admin-only API to delete a membership plan.
+    """
+    try:
+        await verify_superuser(db, current_user)
+        await verify_membership_exists(db, membership_id)
+
+        await db.memberships.delete_one({"_id": ObjectId(membership_id)})
+
+        return {"message": "Membership plan deleted successfully."}
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while deleting the membership: {str(e)}"
+        )
+
+@router.delete("/admin/memberships/{membership_id}")
+async def delete_membership(
+    membership_id: str,
+    db: DatabaseDepends,
+    current_user: CurrentUser
+):
+    """
+    Admin-only API to delete a membership plan.
+    """
+    try:
+        await verify_superuser(db, current_user)
+        await verify_membership_exists(db, membership_id)
+
+        await db.memberships.delete_one({"_id": ObjectId(membership_id)})
+
+        return {"message": "Membership plan deleted successfully."}
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while deleting the membership: {str(e)}"
+        )
+
+
+@router.get("/admin/memberships", response_model=list[MembershipResponse])
+async def list_memberships(
+    db: DatabaseDepends,
+    current_user: CurrentUser
+):
+    """
+    Admin-only API to fetch all membership plans.
+    """
+    try:
+        await verify_superuser(db, current_user)
+
+        memberships = await db.memberships.find().to_list(None)
+        return [
+            MembershipResponse(
+                id=str(membership["_id"]),
+                **membership
+            ) for membership in memberships
+        ]
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while listing memberships: {str(e)}"
         )
