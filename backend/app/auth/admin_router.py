@@ -99,7 +99,6 @@ async def admin_update_user(
             detail=f"An unexpected error occurred: {str(e)}"
         )
     
-# API Endpoint
 @router.get("/users/{user_id}", response_model=SetProfile)
 async def get_user_details(
     user_id: str,
@@ -118,10 +117,17 @@ async def get_user_details(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User not found"
             )
-        response = SetProfile(
-            profile=user.get("profile", {})
-        )
-        return response
+
+        profile_data = user.get("profile")
+        if not profile_data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User profile is missing or invalid"
+            )
+
+        profile = SetProfile(**profile_data)
+
+        return profile
 
     except HTTPException as e:
         raise e
