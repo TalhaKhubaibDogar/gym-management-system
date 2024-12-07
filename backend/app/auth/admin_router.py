@@ -77,6 +77,7 @@ async def get_user_details(
     try:
         await verify_superuser(db, current_user)
 
+        # Fetch the user
         user = await db.users.find_one({"_id": ObjectId(user_id)})
         if not user:
             raise HTTPException(
@@ -84,23 +85,23 @@ async def get_user_details(
                 detail="User not found"
             )
 
-        subscription = await db.subscriptions.find_one({"user_id": ObjectId(user_id)})
         subscription_details = None
-        if subscription:
-            membership = await db.memberships.find_one({"_id": subscription["membership_id"]})
+        if "membership" in user and user["membership"]:
+            membership_id = user["membership"].get("membership_id")
+            membership = await db.memberships.find_one({"_id": ObjectId(membership_id)})
             if membership:
                 subscription_details = {
                     "membership_name": membership["name"],
                     "membership_description": membership["description"],
                     "price": membership["price"],
-                    "start_date": subscription["start_date"],
-                    "end_date": subscription["end_date"]
+                    "start_date": user["membership"].get("start_date"),
+                    "end_date": user["membership"].get("end_date"),
                 }
 
         response = {
             "profile": user.get("profile", {}),
             "is_active": user.get("is_active", False),
-            "subscription": subscription_details
+            "subscription": subscription_details,
         }
 
         return response
@@ -112,6 +113,7 @@ async def get_user_details(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An error occurred while fetching user details: {str(e)}"
         )
+
 
 @router.post("/memberships", response_model=MembershipResponse)
 async def create_membership(
@@ -253,7 +255,6 @@ async def list_memberships(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An error occurred while listing memberships: {str(e)}"
         )
-
 
 
 @router.post("/users/{user_id}/subscribe", response_model=UserSubscriptionResponse)
