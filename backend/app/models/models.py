@@ -240,3 +240,45 @@ class AdminUpdateUserStatus(BaseModel):
 class AdminUpdateUserResponse(BaseModel):
     user_id: str
     is_active: bool
+
+
+class MembershipPlanEnum(str, Enum):
+    GOLD = "Gold"
+    SILVER = "Silver"
+    PLATINUM = "Platinum"
+
+class MembershipCreateRequest(BaseModel):
+    name: str = Field(..., max_length=50)
+    description: Optional[str] = Field(None, max_length=255)
+    price: float = Field(..., ge=0.0)
+    duration_months: int = Field(..., ge=1, le=36)
+    benefits: Optional[list[str]] = Field(default=[])
+
+class MembershipUpdateRequest(BaseModel):
+    name: Optional[str] = Field(None, max_length=50)
+    description: Optional[str] = Field(None, max_length=255)
+    price: Optional[float] = Field(None, ge=0.0)
+    duration_months: Optional[int] = Field(None, ge=1, le=36)
+    benefits: Optional[list[str]] = Field(default=[])
+
+class MembershipResponse(BaseModel):
+    id: str
+    name: str
+    description: Optional[str]
+    price: float
+    duration_months: int
+    benefits: list[str]
+
+class UserSubscriptionRequest(BaseModel):
+    membership_id: str
+
+class UserSubscriptionResponse(BaseModel):
+    user_id: str
+    membership_id: str
+    start_date: datetime
+    end_date: datetime
+
+class GetProfileResponse(BaseModel):
+    message: str
+    profile: dict
+    membership: Optional[dict] = None

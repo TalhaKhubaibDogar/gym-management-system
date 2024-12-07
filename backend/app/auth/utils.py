@@ -169,3 +169,15 @@ async def verify_superuser(db, current_user: dict):
             detail="Insufficient permissions"
         )
 
+
+async def verify_membership_exists(db, membership_id):
+    """
+    Verify that a membership exists in the database.
+    """
+    membership = await db.memberships.find_one({"_id": ObjectId(membership_id)})
+    if not membership:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Membership plan not found"
+        )
+    return membership
