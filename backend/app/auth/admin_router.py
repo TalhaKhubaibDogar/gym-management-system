@@ -75,10 +75,8 @@ async def get_user_details(
     Admin-only API to fetch details of a specific user, including their profile and any active subscription.
     """
     try:
-        # Verify if the current user has superuser privileges
         await verify_superuser(db, current_user)
 
-        # Fetch the user's details from the database
         user = await db.users.find_one({"_id": ObjectId(user_id)})
         if not user:
             raise HTTPException(
@@ -86,7 +84,6 @@ async def get_user_details(
                 detail="User not found"
             )
 
-        # Fetch the subscription details if available
         subscription = await db.subscriptions.find_one({"user_id": ObjectId(user_id)})
         subscription_details = None
         if subscription:
@@ -100,7 +97,6 @@ async def get_user_details(
                     "end_date": subscription["end_date"]
                 }
 
-        # Build the response
         response = {
             "profile": user.get("profile", {}),
             "is_active": user.get("is_active", False),
