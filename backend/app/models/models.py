@@ -277,3 +277,8 @@ class UserSubscriptionResponse(BaseModel):
     membership_id: str
     start_date: datetime
     end_date: datetime
+
+class GetProfileResponse(BaseModel):
+    message: str
+    profile: dict
+    membership: Optional[dict] = None
