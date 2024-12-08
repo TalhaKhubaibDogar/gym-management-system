@@ -28,7 +28,8 @@ from app.models.models import (
     SetProfile,
     SetProfileResponse,
     RefreshTokenRequest,
-    RefreshTokenResponse
+    RefreshTokenResponse,
+    GetProfileResponse
 )
 from datetime import datetime, timedelta
 from app.utils import (
@@ -356,20 +357,44 @@ async def set_profile(
             detail=f"An error occurred while updating the profile: {str(e)}"
         )
 
-@router.get("/profile", response_model=SetProfileResponse)
-async def set_profile(
-    profile_data: SetProfile,
+@router.get("/profile", response_model=GetProfileResponse)
+async def get_profile(
     db: DatabaseDepends,
     current_user: CurrentUser
-) -> SetProfileResponse:
+) -> GetProfileResponse:
+    """
+    API to retrieve the user's profile along with membership details.
+    """
     try:
         user_id = str(current_user["_id"])
-        
+
+        # Fetch user from database
         user = await db.users.find_one({"_id": ObjectId(user_id)})
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+
         user_profile = user.get("profile", {})
-        return SetProfileResponse(
-            message="Profile Retrived",
-            profile=user_profile
+
+        membership_details = None
+        if "membership" in user and user["membership"]:
+            membership_id = user["membership"].get("membership_id")
+            membership = await db.memberships.find_one({"_id": ObjectId(membership_id)})
+            if membership:
+                membership_details = {
+                    "membership_name": membership["name"],
+                    "membership_description": membership["description"],
+                    "price": membership["price"],
+                    "start_date": user["membership"].get("start_date"),
+                    "end_date": user["membership"].get("end_date"),
+                }
+
+        return GetProfileResponse(
+            message="Profile retrieved successfully",
+            profile=user_profile,
+            membership=membership_details,
         )
 
     except HTTPException as e:
@@ -377,8 +402,9 @@ async def set_profile(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An error occurred while retriving the profile: {str(e)}"
+            detail=f"An error occurred while retrieving the profile: {str(e)}"
         )
+
 
 @router.post("/refresh-token", response_model=RefreshTokenResponse)
 async def refresh_token(
