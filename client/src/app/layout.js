@@ -1,5 +1,8 @@
+"use client";
 import localFont from "next/font/local";
+import { usePathname } from "next/navigation";
 import "./globals.css";
+import Header from "./header";
 
 // Importing custom fonts
 const geistSans = localFont({
@@ -21,6 +24,19 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }) {
+  const pathname = usePathname();
+
+  // Define the routes where the header should not be displayed
+  const noHeaderRoutes = [
+    "/login",
+    "/register",
+    "/verify",
+    "/set-password",
+    "/forgotPassword",
+  ];
+
+  const showHeader = !noHeaderRoutes.includes(pathname);
+
   return (
     <html lang="en">
       <head>
@@ -28,6 +44,7 @@ export default function RootLayout({ children }) {
         <meta name="description" content={metadata.description} />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
+        {showHeader && <Header />}
         {children}
       </body>
     </html>
