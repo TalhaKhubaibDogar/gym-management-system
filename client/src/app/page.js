@@ -1,6 +1,10 @@
-"use client";
 import Dashboard from "@/views/Dashboard/Dashboard";
 
+// Metadata for the Gym Management System
+export const metadata = {
+  title: "Gym Management System",
+  description: "Effortlessly manage memberships, schedules, and more with our Gym Management System.",
+};
 export default function Home() {
 
   return (

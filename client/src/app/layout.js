@@ -17,11 +17,6 @@ const geistMono = localFont({
   weight: "100 900",
 });
 
-// Metadata for the Gym Management System
-export const metadata = {
-  title: "Gym Management System",
-  description: "Effortlessly manage memberships, schedules, and more with our Gym Management System.",
-};
 
 export default function RootLayout({ children }) {
   const pathname = usePathname();
@@ -39,10 +34,10 @@ export default function RootLayout({ children }) {
 
   return (
     <html lang="en">
-      <head>
+      {/* <head>
         <title>{metadata.title}</title>
         <meta name="description" content={metadata.description} />
-      </head>
+      </head> */}
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         {showHeader && <Header />}
         {children}
