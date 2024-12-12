@@ -24,6 +24,7 @@ export default function RootLayout({ children }) {
   // Define the routes where the header should not be displayed
   const noHeaderRoutes = [
     "/login",
+    "/signup",
     "/register",
     "/verify",
     "/set-password",
