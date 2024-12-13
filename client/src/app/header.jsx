@@ -36,7 +36,6 @@ export default function Header() {
     const handleLogout = () => {
         localStorage.clear(); // Clear all local storage
         router.push("/login"); // Redirect to the login page
-        window.location.reload(); // Reload the page to reset state and ensure a fresh start
     };
 
     if (!user) {
