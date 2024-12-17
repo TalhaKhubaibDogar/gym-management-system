@@ -307,3 +307,63 @@ async def subscribe_user_to_membership(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An error occurred while subscribing user: {str(e)}"
         )
+
+@router.put("/users/{user_id}/status", response_model=AdminUpdateUserResponse)
+async def admin_update_user(
+    user_id: str,
+    update_data: AdminUpdateUserStatus,
+    db: DatabaseDepends,
+    current_user: CurrentUser
+):
+    """
+    Admin-only API to update a user's active status.
+    
+    :param user_id: ID of the user to update
+    :param update_data: Update payload containing new active status
+    :param db: Database connection
+    :param current_user: Currently authenticated user
+    :return: Update confirmation response
+    """
+    try:
+        await verify_superuser(db, current_user)
+
+        try:
+            user_object_id = ObjectId(user_id)
+        except Exception:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid user ID format"
+            )
+
+        user = await db.users.find_one({"_id": user_object_id})
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+
+        result = await db.users.update_one(
+            {"_id": user_object_id},
+            {"$set": {"is_active": update_data.is_active}}
+        )
+
+        if result.modified_count == 0:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to update user status"
+            )
+
+        return AdminUpdateUserResponse(
+            message="User's active status updated successfully",
+            user_id=user_id,
+            is_active=update_data.is_active
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Unexpected error in admin_update_user: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred"
+        )
